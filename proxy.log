@@ -34,3 +34,49 @@
 [2026-04-25 15:43:58] [INFO] client=127.0.0.1:60331 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 15:43:58 response_time=2026-04-25 15:43:58 status=200 error=-
 [2026-04-25 15:44:52] [INFO] client_ip=127.0.0.1 url=http://blocked.com/ status=403 timestamp=2026-04-25 15:44:52
 [2026-04-25 15:44:52] [INFO] client=127.0.0.1:60428 target=blocked.com:80 method=GET url=http://blocked.com/ request_time=2026-04-25 15:44:52 response_time=2026-04-25 15:44:52 status=403 error=blacklisted_domain
+[2026-04-25 15:46:53] [WARNING] Stopping server from main()
+[2026-04-25 15:46:53] [INFO] Server stopped
+[2026-04-25 15:46:53] [INFO] Server stopped
+[2026-04-25 15:54:31] [INFO] Dashboard started on http://127.0.0.1:8080
+[2026-04-25 15:54:31] [INFO] Proxy server started on 127.0.0.1:8888
+[2026-04-25 15:55:04] [INFO] HTTPS inspected request line: GET / HTTP/1.1
+[2026-04-25 15:55:04] [INFO] client_ip=127.0.0.1 url=example.com:443 status=200 timestamp=2026-04-25 15:55:04
+[2026-04-25 15:55:04] [INFO] client=127.0.0.1:60965 target=example.com:443 method=CONNECT url=example.com:443 request_time=2026-04-25 15:55:04 response_time=2026-04-25 15:55:04 status=200 error=-
+[2026-04-25 16:02:02] [WARNING] Stopping server from main()
+[2026-04-25 16:02:02] [INFO] Server stopped
+[2026-04-25 16:02:02] [INFO] Server stopped
+[2026-04-25 16:02:20] [INFO] Dashboard started on http://127.0.0.1:8080
+[2026-04-25 16:02:20] [INFO] Proxy server started on 127.0.0.1:8888
+[2026-04-25 16:02:46] [INFO] Cached URL: http://example.com/
+[2026-04-25 16:02:46] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:02:46
+[2026-04-25 16:02:46] [INFO] client=127.0.0.1:61390 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:02:46 response_time=2026-04-25 16:02:46 status=200 error=-
+[2026-04-25 16:02:54] [INFO] Cache hit for URL: http://example.com/
+[2026-04-25 16:02:54] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:02:54
+[2026-04-25 16:02:54] [INFO] client=127.0.0.1:61405 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:02:54 response_time=2026-04-25 16:02:54 status=200 error=-
+[2026-04-25 16:02:54] [INFO] Cache hit for URL: http://example.com/
+[2026-04-25 16:02:54] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:02:54
+[2026-04-25 16:02:54] [INFO] client=127.0.0.1:61406 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:02:54 response_time=2026-04-25 16:02:54 status=200 error=-
+[2026-04-25 16:03:55] [INFO] client_ip=127.0.0.1 url=http://blocked.com/ status=403 timestamp=2026-04-25 16:03:55
+[2026-04-25 16:03:55] [INFO] client=127.0.0.1:61494 target=blocked.com:80 method=GET url=http://blocked.com/ request_time=2026-04-25 16:03:55 response_time=2026-04-25 16:03:55 status=403 error=blacklisted_domain
+[2026-04-25 16:04:24] [INFO] HTTPS inspected request line: GET / HTTP/1.1
+[2026-04-25 16:04:24] [INFO] client_ip=127.0.0.1 url=example.com:443 status=200 timestamp=2026-04-25 16:04:24
+[2026-04-25 16:04:24] [INFO] client=127.0.0.1:61537 target=example.com:443 method=CONNECT url=example.com:443 request_time=2026-04-25 16:04:24 response_time=2026-04-25 16:04:24 status=200 error=-
+[2026-04-25 16:05:16] [INFO] client_ip=127.0.0.1 url=blocked.com:443 status=403 timestamp=2026-04-25 16:05:16
+[2026-04-25 16:05:16] [INFO] client=127.0.0.1:61658 target=blocked.com:443 method=CONNECT url=blocked.com:443 request_time=2026-04-25 16:05:16 response_time=2026-04-25 16:05:16 status=403 error=blacklisted_domain
+[2026-04-25 16:05:54] [INFO] client_ip=127.0.0.1 url=- status=400 timestamp=2026-04-25 16:05:54
+[2026-04-25 16:05:54] [INFO] client=127.0.0.1:61740 target=-:- method=- url=- request_time=2026-04-25 16:05:54 response_time=2026-04-25 16:05:54 status=400 error=malformed_request
+[2026-04-25 16:06:44] [INFO] Cached URL: http://example.com/
+[2026-04-25 16:06:44] [INFO] Cached URL: http://example.com/
+[2026-04-25 16:06:44] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:06:44
+[2026-04-25 16:06:44] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:06:44
+[2026-04-25 16:06:44] [INFO] client=127.0.0.1:61826 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:06:44 response_time=2026-04-25 16:06:44 status=200 error=-
+[2026-04-25 16:06:44] [INFO] client=127.0.0.1:61828 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:06:44 response_time=2026-04-25 16:06:44 status=200 error=-
+[2026-04-25 16:06:44] [INFO] Cached URL: http://example.com/
+[2026-04-25 16:06:44] [INFO] Cached URL: http://example.com/
+[2026-04-25 16:06:44] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:06:44
+[2026-04-25 16:06:44] [INFO] client=127.0.0.1:61824 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:06:44 response_time=2026-04-25 16:06:44 status=200 error=-
+[2026-04-25 16:06:44] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:06:44
+[2026-04-25 16:06:44] [INFO] client=127.0.0.1:61825 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:06:44 response_time=2026-04-25 16:06:44 status=200 error=-
+[2026-04-25 16:06:44] [INFO] Cached URL: http://example.com/
+[2026-04-25 16:06:44] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 16:06:44
+[2026-04-25 16:06:44] [INFO] client=127.0.0.1:61827 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 16:06:44 response_time=2026-04-25 16:06:44 status=200 error=-

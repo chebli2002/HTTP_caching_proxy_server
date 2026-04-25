@@ -7,11 +7,20 @@ Team attribution:
 """
 
 import socket
+import ssl
 import threading
 from datetime import datetime
+from select import select
 
 from cache import SimpleCache
-from config import BUFFER_SIZE, CACHE_ENABLED, SOCKET_TIMEOUT
+from config import (
+    BUFFER_SIZE,
+    CACHE_ENABLED,
+    HTTPS_CERT_FILE,
+    HTTPS_KEY_FILE,
+    HTTPS_MITM_ENABLED,
+    SOCKET_TIMEOUT,
+)
 from filter import is_request_allowed
 from logger import log_message, log_request, log_request_details
 from parser import parse_http_request
@@ -26,6 +35,9 @@ proxy_stats = {
     "blocked_requests": 0,
     "error_requests": 0,
 }
+request_history = []
+MAX_REQUEST_HISTORY = 300
+server_ssl_context = None
 
 
 def _increment_stat(name):
@@ -42,6 +54,22 @@ def get_proxy_stats():
             "blocked_requests": proxy_stats["blocked_requests"],
             "error_requests": proxy_stats["error_requests"],
         }
+
+
+def _record_request(entry):
+    """Store recent request details for dashboard display."""
+    with stats_lock:
+        request_history.append(entry)
+        if len(request_history) > MAX_REQUEST_HISTORY:
+            del request_history[0 : len(request_history) - MAX_REQUEST_HISTORY]
+
+
+def get_recent_requests(limit=100):
+    """Return latest request entries for admin dashboard."""
+    with stats_lock:
+        if limit <= 0:
+            return []
+        return list(request_history[-limit:])
 
 
 def _extract_status_code(response_data):
@@ -140,6 +168,102 @@ def _forward_request(host, port, request_data):
         origin_socket.close()
 
 
+def _get_server_ssl_context():
+    """Create TLS server context used to decrypt client HTTPS traffic."""
+    global server_ssl_context
+    if server_ssl_context is None:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile=HTTPS_CERT_FILE, keyfile=HTTPS_KEY_FILE)
+        server_ssl_context = context
+    return server_ssl_context
+
+
+def _extract_https_path_from_request(data):
+    """Best-effort extraction of HTTPS request path for logs/filters."""
+    try:
+        first_line = data.decode("iso-8859-1", errors="replace").split("\r\n", 1)[0]
+        parts = first_line.split(" ")
+        if len(parts) >= 2 and parts[1].startswith("/"):
+            return parts[1], first_line
+        return "/", first_line
+    except Exception:
+        return "/", "-"
+
+
+def _mitm_https_tunnel(client_socket, host, port):
+    """
+    MITM mode for HTTPS:
+    1) ACK CONNECT
+    2) TLS handshake with client (server-side cert)
+    3) TLS handshake with origin (client-side)
+    4) Relay decrypted data in both directions and inspect request line
+    """
+    if not HTTPS_MITM_ENABLED:
+        raise RuntimeError("https_mitm_disabled")
+
+    client_socket.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+
+    tls_server_context = _get_server_ssl_context()
+    tls_client_context = ssl.create_default_context()
+    client_tls = None
+    origin_tcp = None
+    origin_tls = None
+
+    try:
+        client_tls = tls_server_context.wrap_socket(client_socket, server_side=True)
+        origin_tcp = socket.create_connection((host, port), timeout=SOCKET_TIMEOUT)
+        origin_tls = tls_client_context.wrap_socket(origin_tcp, server_hostname=host)
+
+        client_tls.settimeout(SOCKET_TIMEOUT)
+        origin_tls.settimeout(SOCKET_TIMEOUT)
+        idle_rounds = 0
+
+        while True:
+            readable, _, _ = select([client_tls, origin_tls], [], [], 1.0)
+            if not readable:
+                idle_rounds += 1
+                if idle_rounds > int(SOCKET_TIMEOUT * 3):
+                    break
+                continue
+            idle_rounds = 0
+
+            for current in readable:
+                if current is client_tls:
+                    data = client_tls.recv(BUFFER_SIZE)
+                    if not data:
+                        return
+                    path, first_line = _extract_https_path_from_request(data)
+                    log_message(f"HTTPS inspected request line: {first_line}")
+                    full_url = f"https://{host}{path}"
+                    allowed, reason = is_request_allowed(host, full_url)
+                    if not allowed:
+                        client_tls.sendall(create_error_response(403, "Forbidden"))
+                        log_message(f"HTTPS request blocked: {reason} url={full_url}", "WARNING")
+                        return
+                    origin_tls.sendall(data)
+                else:
+                    data = origin_tls.recv(BUFFER_SIZE)
+                    if not data:
+                        return
+                    client_tls.sendall(data)
+    finally:
+        try:
+            if client_tls:
+                client_tls.close()
+        except Exception:
+            pass
+        try:
+            if origin_tls:
+                origin_tls.close()
+        except Exception:
+            pass
+        try:
+            if origin_tcp:
+                origin_tcp.close()
+        except Exception:
+            pass
+
+
 def handle_client(client_socket, client_address):
     """Handle one client request lifecycle safely."""
     client_ip = client_address[0]
@@ -147,6 +271,7 @@ def handle_client(client_socket, client_address):
     url_for_log = "-"
     status_for_log = "500"
     method_for_log = "-"
+    protocol_for_log = "HTTP"
     target_host_for_log = "-"
     target_port_for_log = "-"
     request_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -177,6 +302,7 @@ def handle_client(client_socket, client_address):
         url_for_log = url
         target_host_for_log = host
         target_port_for_log = str(port)
+        protocol_for_log = "HTTPS" if method == "CONNECT" or url.startswith("https://") else "HTTP"
 
         allowed, reason = is_request_allowed(host, url)
         if not allowed:
@@ -185,6 +311,30 @@ def handle_client(client_socket, client_address):
             error_for_log = reason
             client_socket.sendall(create_error_response(403, "Forbidden"))
             return
+
+        if method == "CONNECT":
+            try:
+                _mitm_https_tunnel(client_socket, host, port)
+                status_for_log = "200"
+                return
+            except FileNotFoundError:
+                _increment_stat("error_requests")
+                status_for_log = "500"
+                error_for_log = "missing_tls_certificate_or_key"
+                client_socket.sendall(create_error_response(500, "TLS Certificate Missing"))
+                return
+            except ssl.SSLError:
+                _increment_stat("error_requests")
+                status_for_log = "502"
+                error_for_log = "tls_handshake_failed"
+                client_socket.sendall(create_error_response(502, "TLS Handshake Failed"))
+                return
+            except (socket.timeout, OSError, RuntimeError) as error:
+                _increment_stat("error_requests")
+                status_for_log = "502"
+                error_for_log = str(error)
+                client_socket.sendall(create_error_response(502, "HTTPS Tunnel Error"))
+                return
 
         if CACHE_ENABLED and method == "GET":
             cached = shared_cache.get(url)
@@ -242,6 +392,21 @@ def handle_client(client_socket, client_address):
             pass
     finally:
         response_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        _record_request(
+            {
+                "client_ip": client_ip,
+                "client_port": str(client_port),
+                "target_host": target_host_for_log,
+                "target_port": target_port_for_log,
+                "method": method_for_log,
+                "protocol": protocol_for_log,
+                "url": url_for_log,
+                "status": status_for_log,
+                "request_time": request_timestamp,
+                "response_time": response_timestamp,
+                "error": error_for_log,
+            }
+        )
         log_request(client_ip, url_for_log, status_for_log)
         log_request_details(
             client_ip=client_ip,
