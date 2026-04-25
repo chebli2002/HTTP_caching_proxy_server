@@ -8,11 +8,12 @@ Team attribution:
 
 import socket
 import threading
+from datetime import datetime
 
 from cache import SimpleCache
 from config import BUFFER_SIZE, CACHE_ENABLED, SOCKET_TIMEOUT
-from filter import is_domain_allowed
-from logger import log_message, log_request
+from filter import is_request_allowed
+from logger import log_message, log_request, log_request_details
 from parser import parse_http_request
 from utils import create_error_response
 
@@ -142,8 +143,14 @@ def _forward_request(host, port, request_data):
 def handle_client(client_socket, client_address):
     """Handle one client request lifecycle safely."""
     client_ip = client_address[0]
+    client_port = client_address[1]
     url_for_log = "-"
     status_for_log = "500"
+    method_for_log = "-"
+    target_host_for_log = "-"
+    target_port_for_log = "-"
+    request_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    error_for_log = "-"
 
     try:
         _increment_stat("total_requests")
@@ -151,12 +158,14 @@ def handle_client(client_socket, client_address):
         request_data = client_socket.recv(BUFFER_SIZE)
         if not request_data:
             status_for_log = "400"
+            error_for_log = "empty_request"
             client_socket.sendall(create_error_response(400, "Bad Request"))
             return
 
         parsed = parse_http_request(request_data)
         if not parsed:
             status_for_log = "400"
+            error_for_log = "malformed_request"
             client_socket.sendall(create_error_response(400, "Bad Request"))
             return
 
@@ -164,11 +173,16 @@ def handle_client(client_socket, client_address):
         url = parsed["url"]
         host = parsed["host"]
         port = parsed["port"]
+        method_for_log = method
         url_for_log = url
+        target_host_for_log = host
+        target_port_for_log = str(port)
 
-        if not is_domain_allowed(host):
+        allowed, reason = is_request_allowed(host, url)
+        if not allowed:
             _increment_stat("blocked_requests")
             status_for_log = "403"
+            error_for_log = reason
             client_socket.sendall(create_error_response(403, "Forbidden"))
             return
 
@@ -186,17 +200,20 @@ def handle_client(client_socket, client_address):
         except socket.timeout:
             _increment_stat("error_requests")
             status_for_log = "504"
+            error_for_log = "origin_timeout"
             client_socket.sendall(create_error_response(504, "Gateway Timeout"))
             return
         except (socket.gaierror, ConnectionRefusedError, OSError):
             _increment_stat("error_requests")
             status_for_log = "502"
+            error_for_log = "origin_connection_error"
             client_socket.sendall(create_error_response(502, "Bad Gateway"))
             return
 
         if not response_data:
             _increment_stat("error_requests")
             status_for_log = "502"
+            error_for_log = "empty_origin_response"
             client_socket.sendall(create_error_response(502, "Bad Gateway"))
             return
 
@@ -210,19 +227,34 @@ def handle_client(client_socket, client_address):
     except socket.timeout:
         _increment_stat("error_requests")
         status_for_log = "408"
+        error_for_log = "client_timeout"
         try:
             client_socket.sendall(create_error_response(408, "Request Timeout"))
         except OSError:
             pass
     except Exception as error:
         _increment_stat("error_requests")
+        error_for_log = str(error)
         log_message(f"Unhandled client error from {client_ip}: {error}", "ERROR")
         try:
             client_socket.sendall(create_error_response(500, "Internal Server Error"))
         except OSError:
             pass
     finally:
+        response_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_request(client_ip, url_for_log, status_for_log)
+        log_request_details(
+            client_ip=client_ip,
+            client_port=client_port,
+            target_host=target_host_for_log,
+            target_port=target_port_for_log,
+            method=method_for_log,
+            url=url_for_log,
+            request_timestamp=request_timestamp,
+            response_timestamp=response_timestamp,
+            status=status_for_log,
+            error_message=error_for_log,
+        )
         try:
             client_socket.close()
         except OSError:
