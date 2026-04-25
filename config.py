@@ -28,3 +28,7 @@ BLACKLIST_DOMAINS = [
     "blocked.com",
     "ads.badsite.com",
 ]
+
+# Web dashboard settings
+UI_HOST = "127.0.0.1"
+UI_PORT = 8080

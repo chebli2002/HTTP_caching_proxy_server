@@ -28,3 +28,13 @@ def log_request(client_ip, url, status):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     message = f"client_ip={client_ip} url={url} status={status} timestamp={timestamp}"
     log_message(message, "INFO")
+
+
+def read_recent_logs(limit=50):
+    """Return last log lines without crashing if file missing."""
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as log_file:
+            lines = log_file.readlines()
+            return lines[-limit:]
+    except OSError:
+        return []

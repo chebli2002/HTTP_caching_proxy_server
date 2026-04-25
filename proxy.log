@@ -1,3 +1,26 @@
 [2026-04-25 13:12:54] [INFO] Proxy server started on 127.0.0.1:8888
 [2026-04-25 13:13:33] [WARNING] Keyboard interrupt received, shutting down.
 [2026-04-25 13:13:33] [INFO] Server stopped
+[2026-04-25 13:22:53] [INFO] Dashboard started on http://127.0.0.1:8080
+[2026-04-25 13:22:53] [INFO] Proxy server started on 127.0.0.1:8888
+[2026-04-25 13:24:09] [INFO] client_ip=127.0.0.1 url=http://google.com/ status=504 timestamp=2026-04-25 13:24:09
+[2026-04-25 13:25:11] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=504 timestamp=2026-04-25 13:25:11
+[2026-04-25 13:25:21] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=504 timestamp=2026-04-25 13:25:21
+[2026-04-25 13:29:34] [WARNING] Stopping server from main()
+[2026-04-25 13:29:34] [INFO] Server stopped
+[2026-04-25 13:29:34] [INFO] Server stopped
+[2026-04-25 13:29:59] [INFO] Proxy server started on 127.0.0.1:8888
+[2026-04-25 13:29:59] [INFO] Dashboard started on http://127.0.0.1:8080
+[2026-04-25 13:30:18] [INFO] Cached URL: http://example.com/
+[2026-04-25 13:30:18] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 13:30:18
+[2026-04-25 13:30:20] [INFO] Cache hit for URL: http://example.com/
+[2026-04-25 13:30:20] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 13:30:20
+[2026-04-25 13:30:34] [INFO] Cache hit for URL: http://example.com/
+[2026-04-25 13:30:34] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 13:30:34
+[2026-04-25 13:30:48] [INFO] Cached URL: http://google.com/
+[2026-04-25 13:30:48] [INFO] client_ip=127.0.0.1 url=http://google.com/ status=301 timestamp=2026-04-25 13:30:48
+[2026-04-25 13:31:03] [INFO] Cached URL: http://example.com/
+[2026-04-25 13:31:03] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 13:31:03
+[2026-04-25 13:31:26] [WARNING] Stopping server from main()
+[2026-04-25 13:31:26] [INFO] Server stopped
+[2026-04-25 13:31:26] [INFO] Server stopped
