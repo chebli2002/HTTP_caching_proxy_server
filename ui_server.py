@@ -9,10 +9,11 @@ Team attribution:
 import socket
 import threading
 import time
+import json
 
 from config import BUFFER_SIZE, UI_HOST, UI_PORT
 from logger import log_message, read_recent_logs
-from proxy_handler import get_proxy_stats
+from proxy_handler import get_proxy_stats, get_recent_requests
 
 
 def _http_response(status_line, body, content_type="text/html"):
@@ -51,29 +52,64 @@ def _dashboard_html():
   <meta charset="utf-8" />
   <title>HTTP Proxy Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .card { background: #1e293b; border-radius: 10px; padding: 16px; }
-    h1, h2 { margin: 0 0 12px 0; }
-    pre { background: #020617; padding: 12px; border-radius: 8px; height: 320px; overflow: auto; }
-    .value { font-size: 28px; font-weight: bold; }
-    .label { color: #94a3b8; font-size: 14px; }
+    body { font-family: Arial, sans-serif; background: #0b1220; color: #e2e8f0; margin: 0; padding: 24px; }
+    .layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)); gap: 12px; }
+    .card { background: #162338; border-radius: 12px; padding: 14px; border: 1px solid #2a3b5a; }
+    .panel { background: #101a2d; border-radius: 12px; padding: 14px; border: 1px solid #2a3b5a; }
+    h1, h2, h3 { margin: 0 0 12px 0; }
+    .value { font-size: 26px; font-weight: bold; margin-top: 6px; }
+    .label { color: #9fb0cc; font-size: 13px; }
+    .sub { color: #8ea0be; font-size: 12px; margin-top: 6px; }
+    pre { background: #040914; padding: 12px; border-radius: 8px; height: 210px; overflow: auto; border: 1px solid #243353; }
+    .table-wrap { overflow: auto; max-height: 300px; border-radius: 8px; border: 1px solid #2a3b5a; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 860px; }
+    th, td { padding: 8px; border-bottom: 1px solid #273955; text-align: left; }
+    th { position: sticky; top: 0; background: #1a2a44; color: #c8d6ec; }
+    .ok { color: #67e8a5; }
+    .error { color: #fca5a5; }
   </style>
 </head>
 <body>
   <h1>Modular HTTP Proxy Dashboard</h1>
-  <div class="grid">
-    <div class="card"><div class="label">Total Requests</div><div id="total_requests" class="value">0</div></div>
-    <div class="card"><div class="label">Cache Hits</div><div id="cache_hits" class="value">0</div></div>
-    <div class="card"><div class="label">Blocked Requests</div><div id="blocked_requests" class="value">0</div></div>
-    <div class="card"><div class="label">Error Requests</div><div id="error_requests" class="value">0</div></div>
+  <div class="layout">
+    <div class="grid">
+      <div class="card"><div class="label">Total Requests</div><div id="total_requests" class="value">0</div></div>
+      <div class="card"><div class="label">HTTP Requests</div><div id="http_count" class="value">0</div></div>
+      <div class="card"><div class="label">HTTPS Requests</div><div id="https_count" class="value">0</div></div>
+      <div class="card"><div class="label">Cache Hits</div><div id="cache_hits" class="value">0</div></div>
+      <div class="card"><div class="label">Blocked Requests</div><div id="blocked_requests" class="value">0</div></div>
+      <div class="card"><div class="label">Error Requests</div><div id="error_requests" class="value">0</div></div>
+      <div class="card"><div class="label">Uptime (seconds)</div><div id="uptime_seconds" class="value">0</div></div>
+      <div class="card"><div class="label">Last Status</div><div id="last_status" class="value">-</div><div id="last_status_meta" class="sub">waiting for traffic</div></div>
+      <div class="card"><div class="label">Last URL</div><div id="last_url" class="value" style="font-size:14px; word-break: break-all;">-</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>HTTP Requests</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Client</th><th>Method</th><th>URL</th><th>Status</th><th>Error</th></tr></thead>
+          <tbody id="http_rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>HTTPS Requests</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Client</th><th>Method</th><th>URL</th><th>Status</th><th>Error</th></tr></thead>
+          <tbody id="https_rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Recent Raw Logs</h3>
+      <pre id="logs">Loading logs...</pre>
+    </div>
   </div>
-  <div class="card">
-    <div class="label">Uptime (seconds)</div>
-    <div id="uptime_seconds" class="value">0</div>
-  </div>
-  <h2 style="margin-top: 20px;">Recent Logs</h2>
-  <pre id="logs">Loading logs...</pre>
   <script>
     function parseKeyValues(text) {
       const values = {};
@@ -97,6 +133,48 @@ def _dashboard_html():
           const el = document.getElementById(key);
           if (el) el.textContent = stats[key] || "0";
         });
+      } catch (_) {}
+
+      try {
+        const requestsRes = await fetch("/api/requests");
+        const requests = await requestsRes.json();
+        const httpRows = document.getElementById("http_rows");
+        const httpsRows = document.getElementById("https_rows");
+        httpRows.innerHTML = "";
+        httpsRows.innerHTML = "";
+
+        let httpCount = 0;
+        let httpsCount = 0;
+
+        requests.forEach((entry) => {
+          const row = document.createElement("tr");
+          const statusClass = Number(entry.status) >= 400 ? "error" : "ok";
+          row.innerHTML = `
+            <td>${entry.response_time || "-"}</td>
+            <td>${entry.client_ip}:${entry.client_port}</td>
+            <td>${entry.method}</td>
+            <td>${entry.url}</td>
+            <td class="${statusClass}">${entry.status}</td>
+            <td>${entry.error || "-"}</td>
+          `;
+          if (entry.protocol === "HTTPS") {
+            httpsCount += 1;
+            httpsRows.appendChild(row);
+          } else {
+            httpCount += 1;
+            httpRows.appendChild(row);
+          }
+        });
+
+        document.getElementById("http_count").textContent = String(httpCount);
+        document.getElementById("https_count").textContent = String(httpsCount);
+
+        if (requests.length > 0) {
+          const last = requests[requests.length - 1];
+          document.getElementById("last_status").textContent = last.status || "-";
+          document.getElementById("last_status_meta").textContent = `${last.protocol || "-"} ${last.method || "-"}`;
+          document.getElementById("last_url").textContent = last.url || "-";
+        }
       } catch (_) {}
 
       try {
@@ -144,6 +222,11 @@ def _handle_ui_client(client_socket, client_address):
 
         if path == "/api/logs":
             client_socket.sendall(_http_response("HTTP/1.1 200 OK", _logs_text(), "text/plain"))
+            return
+
+        if path == "/api/requests":
+            body = json.dumps(get_recent_requests(limit=120))
+            client_socket.sendall(_http_response("HTTP/1.1 200 OK", body, "application/json"))
             return
 
         client_socket.sendall(_http_response("HTTP/1.1 404 Not Found", "Not Found", "text/plain"))

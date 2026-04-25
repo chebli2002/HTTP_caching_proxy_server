@@ -41,3 +41,8 @@ BLACKLIST_URL_KEYWORDS = []
 # Web dashboard settings
 UI_HOST = "127.0.0.1"
 UI_PORT = 8080
+
+# HTTPS MITM settings (educational/debug use only)
+HTTPS_MITM_ENABLED = True
+HTTPS_CERT_FILE = "certs/proxy_cert.pem"
+HTTPS_KEY_FILE = "certs/proxy_key.pem"

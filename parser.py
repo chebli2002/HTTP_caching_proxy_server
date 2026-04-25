@@ -63,6 +63,20 @@ def parse_http_request(request_data):
         else:
             host = host_part
 
+    # CONNECT usually carries host:port in URL target.
+    if not host and method == "CONNECT":
+        connect_target = url
+        if ":" in connect_target:
+            host_name, port_text = connect_target.rsplit(":", 1)
+            host = host_name
+            try:
+                port = int(port_text)
+            except ValueError:
+                return None
+        else:
+            host = connect_target
+            port = 443
+
     if not host:
         return None
 
