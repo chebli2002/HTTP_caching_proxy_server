@@ -20,6 +20,7 @@ CACHE_ENABLED = True
 CACHE_TIMEOUT_SECONDS = 30
 
 # Filtering settings
+FILTER_ENABLED = True
 USE_WHITELIST = False
 WHITELIST_DOMAINS = [
     "example.com",
@@ -28,6 +29,14 @@ BLACKLIST_DOMAINS = [
     "blocked.com",
     "ads.badsite.com",
 ]
+
+# Optional IP-based filtering (exact IPv4 string match).
+WHITELIST_IPS = []
+BLACKLIST_IPS = []
+
+# Optional URL keyword filtering.
+WHITELIST_URL_KEYWORDS = []
+BLACKLIST_URL_KEYWORDS = []
 
 # Web dashboard settings
 UI_HOST = "127.0.0.1"

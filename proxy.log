@@ -24,3 +24,13 @@
 [2026-04-25 13:31:26] [WARNING] Stopping server from main()
 [2026-04-25 13:31:26] [INFO] Server stopped
 [2026-04-25 13:31:26] [INFO] Server stopped
+[2026-04-25 15:42:57] [INFO] Proxy server started on 127.0.0.1:8888
+[2026-04-25 15:42:57] [INFO] Dashboard started on http://127.0.0.1:8080
+[2026-04-25 15:43:36] [INFO] Cached URL: http://example.com/
+[2026-04-25 15:43:36] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 15:43:36
+[2026-04-25 15:43:36] [INFO] client=127.0.0.1:60304 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 15:43:36 response_time=2026-04-25 15:43:36 status=200 error=-
+[2026-04-25 15:43:58] [INFO] Cache hit for URL: http://example.com/
+[2026-04-25 15:43:58] [INFO] client_ip=127.0.0.1 url=http://example.com/ status=200 timestamp=2026-04-25 15:43:58
+[2026-04-25 15:43:58] [INFO] client=127.0.0.1:60331 target=example.com:80 method=GET url=http://example.com/ request_time=2026-04-25 15:43:58 response_time=2026-04-25 15:43:58 status=200 error=-
+[2026-04-25 15:44:52] [INFO] client_ip=127.0.0.1 url=http://blocked.com/ status=403 timestamp=2026-04-25 15:44:52
+[2026-04-25 15:44:52] [INFO] client=127.0.0.1:60428 target=blocked.com:80 method=GET url=http://blocked.com/ request_time=2026-04-25 15:44:52 response_time=2026-04-25 15:44:52 status=403 error=blacklisted_domain
